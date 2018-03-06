@@ -130,7 +130,7 @@ for i = 1:length(Q(:,1))-19
 end
 
 for step = 1:10
-    for i=((step-1)*100+1):step
+    for i=1:200
           m1 = M_raw(k,:);   % 1   11  21  31  41  51  61       %数据不能太集中，容易陷入局部极小值
           m2 = M_raw(k+19,:);% 100 110 120 130 140 150 160      
           M_input1 = [M_input1;m1;m2];
