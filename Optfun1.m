@@ -21,15 +21,15 @@ function L = Optfun1(h)
         S = [1 0 0 ; 0 1 0 ; 0 0 1];
     end
 % raw input data
-    global  M_input Qd_input M_input1 Qd_input1 M_input2
+    global  M_input Qd_input M_input1 Qd_input1 M_input2  FirstSize SecondSize;
 % input
     
     if(sec ==1)
-    m_size = 400; q_size = 200;
+    m_size = SecondSize*2; q_size = SecondSize;
     qd=double(Qd_input1); m= double(M_input1);
     md = double(M_input2);
     else
-    m_size = 400; q_size = 200;
+    m_size = FirstSize*2; q_size = FirstSize;
     qd=double(Qd_input); m= double(M_input);
     end
     mx = zeros(1,m_size);my = zeros(1,m_size);mz = zeros(1,m_size); M = zeros(3,m_size);

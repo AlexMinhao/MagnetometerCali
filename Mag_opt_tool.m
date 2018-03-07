@@ -20,12 +20,12 @@
 %          
 H_all = [];
 % for i = 1:210
-    [M_raw, Q] = importdata('MQ1.csv',4050,16800);  %30 75 185 1250
+    [M_raw, Q] = importdata('MQ1.csv',8000,16000);  %30 75 185 1250
     %[M_raw,n] =smooth(M_raw);
 %% q_diff
 Qd = [];
-for i = 1:length(Q(:,1))-9
-    qdiff = quatmultiply(Q(i+9,:),quatinv(Q(i,:)));
+for i = 1:length(Q(:,1))-19
+    qdiff = quatmultiply(Q(i+19,:),quatinv(Q(i,:)));
     Qd = [Qd; qdiff];
 end
 
@@ -62,14 +62,20 @@ global M_input2;
 global Qd_input; 
 global Qd_input1;
 
+global FirstSize;
+global SecondSize;
 M_input1 = [];
 M_input2 = [];
 M_input = [];
 Qd_input= [];
+
+FirstSize = 200;
+SecondSize= 100;
+
 k=1;  
-for i=1:250
+for i=1:FirstSize
           m1 = M_raw(k,:);   % 1   11  21  31  41  51  61       %数据不能太集中，容易陷入局部极小值
-          m2 = M_raw(k+9,:);% 100 110 120 130 140 150 160      
+          m2 = M_raw(k+19,:);% 100 110 120 130 140 150 160      
           M_input = [M_input;m1;m2];
           qd_input = Qd(k,:);
           Qd_input =[Qd_input; qd_input];
@@ -118,21 +124,25 @@ options = optimset('Display','iter','TolX',0.0000001,'MaxFunEvals',1000,'MaxIter
 % 牛顿法
 % options = optimoptions(@fminunc,'Algorithm','quasi-newton','MaxFunEvals',5000,'MaxIter',11000,'TolX',0.0001,'TolFun',0.00001);
 % [H,fval_H]=fminunc('Optfun1',H_init,options);
+% 最小二乘法
+% options = optimoptions('lsqnonlin','Display','iter','MaxFunctionEvaluations',40000,'MaxIterations',3000,'Algorithm','levenberg-marquardt');
+% [H,fval_SH] = lsqnonlin('Optfun1',H_init,[],[],options);
 % 
+H_f1 =[H(1); H(2); H(3)];
 H_0 = [H(1); H(2); H(3)];
-
+H_F = [];
 %% Second iteration
 
 Qd = [];
-for i = 1:length(Q(:,1))-19
-    qdiff = quatmultiply(Q(i+19,:),quatinv(Q(i,:)));
+for i = 1:length(Q(:,1))-29
+    qdiff = quatmultiply(Q(i+29,:),quatinv(Q(i,:)));
     Qd = [Qd; qdiff];
 end
-
-for step = 1:10
-    for i=1:200
+k=1;
+for step = 1:3
+    for i=1:SecondSize
           m1 = M_raw(k,:);   % 1   11  21  31  41  51  61       %数据不能太集中，容易陷入局部极小值
-          m2 = M_raw(k+19,:);% 100 110 120 130 140 150 160      
+          m2 = M_raw(k+29,:);% 100 110 120 130 140 150 160      
           M_input1 = [M_input1;m1;m2];
           qd_input = Qd(k,:);
           Qd_input1 =[Qd_input1; qd_input];
@@ -152,10 +162,15 @@ for step = 1:10
     flag = 1;
     SH_init = [H_0' S_init];
 
-    options = optimoptions(@fminunc,'Display','iter','PlotFcns',@optimplotfval,'Algorithm','quasi-newton','MaxFunEvals',5000,'MaxIter',2000,'TolX',0.00000001,'TolFun',0.00000001);
-    [H,fval_SH]=fminunc('Optfun1',SH_init,options);
-    
+%     options = optimoptions(@fminunc,'Display','iter','PlotFcns',@optimplotfval,'Algorithm','quasi-newton','MaxFunEvals',5000,'MaxIter',2000,'TolX',0.00000001,'TolFun',0.00000001);
+%     [H,fval_SH]=fminunc('Optfun1',SH_init,options);
+    options = optimoptions('lsqnonlin','Display','iter','MaxFunctionEvaluations',40000,'MaxIterations',3000,'Algorithm','levenberg-marquardt');
+    [H,fval_SH] = lsqnonlin('Optfun1',SH_init,[],[],options);
+    H_F = [H_F; fval_SH H(1) H(2) H(3)];
     H_0 = [H(1); H(2); H(3)];
+    M_input1=[];
+    M_input2=[];
+    Qd_input1=[];
 end
 
 
@@ -168,8 +183,7 @@ end
 % options = optimset('Display','iter','TolX',0.000000001,'MaxFunEvals',5000,'MaxIter',3000,'TolFun',0.000000001);
 % [H,fval_SH,exitflag,output] = fminsearch('Optfun1',SH_init,options);
 % 
-% options = optimoptions('lsqnonlin','Display','iter','MaxFunctionEvaluations',40000,'MaxIterations',3000,'Algorithm','levenberg-marquardt');
-% H = lsqnonlin('Optfun1',SH_init,[],[],options);
+
 
 % 有约束
 % A = [];
@@ -184,16 +198,17 @@ end
 
 
 % 
-Hf = [H(1) H(2) H(3)];
+H_F_sort= sortrows(H_F,1);
+Hf = [H_F_sort(1,2),H_F_sort(1,3),H_F_sort(1,4)];%H_0;%[H(1) H(2) H(3)];
 plot3(M_raw(:,1),M_raw(:,2),M_raw(:,3),'.');hold on;
-plot3(H_0(1),H_0(2),H_0(3),'*');
+plot3(H_f1(1),H_f1(2),H_f1(3),'*');
 plot3(Hf(1),Hf(2),Hf(3),'*');
 plot3(8,28,-36,'*');
-figure;
-%plot3(M_raw(:,1),M_raw(:,2),M_raw(:,3),'.');
-plot3(M_input2(:,1),M_input2(:,2),M_input2(:,3),'o');hold on;
-plot3(M_input1(:,1),M_input1(:,2),M_input1(:,3),'.');
-plot3(M_raw(idx(1),1),M_raw(idx(1),2),M_raw(idx(1),3),'*');
-plot3(H_0(1),H_0(2),H_0(3),'*');
- plot3(M_raw(idx(num),1),M_raw(idx(num),2),M_raw(idx(num),3),'*');
+% figure;
+% %plot3(M_raw(:,1),M_raw(:,2),M_raw(:,3),'.');
+% plot3(M_input2(:,1),M_input2(:,2),M_input2(:,3),'o');hold on;
+% plot3(M_input1(:,1),M_input1(:,2),M_input1(:,3),'.');
+% plot3(M_raw(idx(1),1),M_raw(idx(1),2),M_raw(idx(1),3),'*');
+% plot3(H_0(1),H_0(2),H_0(3),'*');
+%  plot3(M_raw(idx(num),1),M_raw(idx(num),2),M_raw(idx(num),3),'*');
 
